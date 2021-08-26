@@ -18,52 +18,59 @@ let data = [];
 io.on('connection', (socket) => {
 
     let username;
+    let userId;
+    let roomName
     let password;
 
     console.log('New socket connection: ' + socket.id)
 
 
     socket.on("connectUser", (...args) => {
-        username = args[0]
-        socket.join(username)
+        userId = args[0]
+        username = args[1]
+        roomName = userId + ''
+        socket.join(roomName)
         console.log('connected with: ' + username)
     });
 
     socket.on("createUser", (...args) => {
-        username = args[0]
-        password = args[1]
-        const user = {username: args[0], password: args[1], reminders: []}
+        userId = args[0]
+        username = args[1]
+        password = args[2]
+        const user = {userId: args[0], username: args[1], password: args[2], reminders: []}
         data.push(user)
-        socket.join(username)
+        roomName = userId + ''
+        socket.join(roomName)
+        io.emit('createUser', userId, username, password);
         console.log('connected with new user: ' + username)
     });
 
     
     socket.on("createReminder", (...args) => {
-       const reminder = {id:args[0], header:args[1], description:args[2], username:args[3], time:args[4], createdAt:args[5]}
+       const reminder = {id:args[0], header:args[1], description:args[2], user:args[3], time:args[4], createdAt:args[5]}
        data.forEach(function(item, index, array){
-           if (item.username === username) {
+           if (item.username == username) {
                array[index].reminders.push(reminder)
            }
        })
-       io.to(username).emit('createReminder', reminder);
+       socket.to(roomName).emit('createReminder', args[0], args[1], args[2], args[3], args[4], args[5]);
        console.log('reminder ' + reminder.id + ' added to user: ' + username)
        console.log(data)
     });
 
     socket.on("editReminder", (...args) => {
-        const reminder = {id:args[0], header:args[1], description:args[2], username:args[3], time:args[4], createdAt:args[5]}
+        const reminder = {id:args[0], header:args[1], description:args[2], user:args[3], time:args[4], createdAt:args[5]}
         data.forEach(function(item, index, array){
-            if (item.username === username) {
+            if (item.username == username) {
                 item.reminders.forEach(function(item, index, array){
-                    if (item.id === reminder.id) {
+                    if (item.id == reminder.id) {
                         array[index] = reminder
                     }
                 })
             }
         })
-        io.to(username).emit('editReminder', reminder);
-        console.log('reminder '+ reminder.id +  'of the user: ' + username + ' updated ')
+        socket.to(roomName).emit('editReminder', args[0], args[1], args[2], args[3], args[4], args[5]);
+        console.log('reminder '+ reminder.id + ' updated ')
         console.log(data)
      });
 
@@ -71,16 +78,16 @@ io.on('connection', (socket) => {
      socket.on("deleteReminder", (...args) => {
         const id = args[0]
         data.forEach(function(item, index, array){
-            if (item.username === username) {
+            if (item.userId == userId) {
                 item.reminders.forEach(function(item, index, array){
-                    if (item.id === id) {
+                    if (item.id == id) {
                         array.splice(index, 1)
                     }
                 })
             }
         })
-        io.to(username).emit('deleteReminder', id);
-        console.log('reminder' + id + 'of the user: ' + username + ' deleted ')
+        socket.to(roomName).emit('deleteReminder', args[0], args[1], args[2], args[3], args[4], args[5]);
+        console.log('reminder ' + id + ' of the user: ' + username + ' deleted ')
         console.log(data)
      });
 
@@ -89,25 +96,38 @@ io.on('connection', (socket) => {
         const oldUsername = args[0]
         const newUsername = args[1]
         data.forEach(function(item, index, array){
-            if (item.username === oldUsername) {
+            if (item.username == oldUsername) {
                 item.username = newUsername
-                socket.leave(username)
-                username = newUsername
-                socket.join(username)
             }
         })
-        io.to(username).emit('deleteReminder', args);
-        console.log('username ' + oldUsername + 'updated to: ' + newUsername)
+        username = newUsername
+        socket.to(roomName).emit('changeUsername', oldUsername, newUsername);
+        console.log('username ' + oldUsername + ' updated to: ' + newUsername)
         console.log(data)
      });
 
-    socket.on('test', () => {
-        console.log('test')
-        socket.emit('username', 'gaya11');
-        socket.emit('password', '123');
-    })
 
-    socket.on('test2', () => {
-        console.log('test2')
-    })
+    socket.on("logout", () => {
+        socket.leave(roomName)
+        console.log('user ' + username + ' logged out')
+        username = undefined
+        userId = undefined
+        roomName = undefined
+         });
+    
+
+
+     socket.on("getAllUsers", (...args) => {
+        socket.emit('getAllUsers', data);
+        console.log(data)
+     });
+
+     socket.on("getAllReminders", (...args) => {
+        data.forEach(function(item, index, array){
+            if (item.userId == args[0]) {
+                socket.emit('getAllReminders', item.reminders);
+                console.log(item.reminders)
+            }
+        })
+     });
 })
