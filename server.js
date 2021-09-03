@@ -15,7 +15,7 @@ let data = [];
 io.on('connection', (socket) => {
 
     let username;
-    let sharedId;
+    let userId;
     let roomName
     let password;
 
@@ -23,22 +23,22 @@ io.on('connection', (socket) => {
 
 
     socket.on("connectUser", (...args) => {
-        sharedId = args[0]
+        userId = args[0]
         username = args[1]
-        roomName = sharedId + ''
+        roomName = userId + ''
         socket.join(roomName)
         console.log('connected with: ' + username)
     });
 
     socket.on("createUser", (...args) => {
-        sharedId = args[0]
+        userId = args[0]
         username = args[1]
         password = args[2]
-        const user = { sharedId: args[0], username: args[1], password: args[2], reminders: [] }
+        const user = { userId: args[0], username: args[1], password: args[2], reminders: [] }
         data.push(user)
-        roomName = sharedId + ''
+        roomName = userId + ''
         socket.join(roomName)
-        io.emit('createUser', sharedId, username, password);
+        io.emit('createUser', userId, username, password);
         console.log('connected with new user: ' + username)
     });
 
@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
     socket.on("createReminder", (...args) => {
         const reminder = { id: args[0], header: args[1], description: args[2], user: args[3], time: args[4], createdAt: args[5] }
         data.forEach(function (item, index, array) {
-            if (item.sharedId == sharedId) {
+            if (item.userId == userId) {
                 array[index].reminders.push(reminder)
             }
         })
@@ -75,7 +75,7 @@ io.on('connection', (socket) => {
     socket.on("deleteReminder", (...args) => {
         const id = args[0]
         data.forEach(function (item, index, array) {
-            if (item.sharedId == sharedId) {
+            if (item.userId == userId) {
                 item.reminders.forEach(function (item, index, array) {
                     if (item.id == id) {
                         array.splice(index, 1)
@@ -108,7 +108,7 @@ io.on('connection', (socket) => {
         socket.leave(roomName)
         console.log('user ' + username + ' logged out')
         username = undefined
-        sharedId = undefined
+        userId = undefined
         roomName = undefined
     });
 
@@ -119,7 +119,7 @@ io.on('connection', (socket) => {
 
     socket.on("getAllReminders", (...args) => {
         data.forEach(function (item, index, array) {
-            if (item.sharedId == args[0]) {
+            if (item.userId == args[0]) {
                 socket.emit('getAllReminders', item.reminders)
                 console.log(item.reminders)
                 console.log('get all reminders by ', username)
