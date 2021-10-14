@@ -1,9 +1,9 @@
-const express = require('express'); 
+const express = require('express');
 const socket = require('socket.io');
 const fs = require('fs');
 const app = express();
 let PORT = process.env.PORT || 3456;
-const server = app.listen(PORT); 
+const server = app.listen(PORT);
 
 
 app.use(express.static('public'));
@@ -23,11 +23,34 @@ io.on('connection', (socket) => {
 
 
     socket.on("connectUser", (...args) => {
-        userId = args[0]
-        username = args[1]
-        roomName = userId + ''
-        socket.join(roomName)
-        console.log('connected with: ' + username)
+        var isExists = false
+        data.forEach(function (item, index, array) {
+            if (item.username == args[1]) {
+                isExists = true
+                if (item.password == args[2]) {
+                    userId = args[0]
+                    username = args[1]
+                    roomName = userId + ''
+                    socket.join(roomName)
+                    socket.emit('connectUser', 'connect');
+                    console.log('connected with: ' + username)
+                }
+                else {
+                    socket.emit('connectUser', 'wrongpass');
+                }
+            }
+            if (isExists == false) {
+                const user = { userId: args[0], username: args[1], password: args[2], reminders: [] }
+                data.push(user)
+                userId = args[0]
+                username = args[1]
+                password = args[2]
+                roomName = userId + ''
+                socket.join(roomName)
+                socket.emit('connectUser', 'create');
+            }
+        })
+        console.log('here')
     });
 
     socket.on("createUser", (...args) => {
