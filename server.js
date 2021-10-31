@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
         data.forEach(function (item, index, array) {
             if (item.userId == reminder.user) {
                 array[index].reminders.push(reminder)
-                socket.to(roomName).emit('onCreateReminder', reminder);
+                io.in(roomName).emit('onCreateReminder', reminder);
                 console.log('reminder ' + reminder.id + ' added to user: ' + username)
             }
         })
@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
                 item.reminders.forEach(function (item, index, array) {
                     if (item.id == reminder.id) {
                         array[index] = reminder
-                        socket.to(roomName).emit('onEditReminder', reminder);
+                        io.in(roomName).emit('onEditReminder', reminder);
                         console.log('reminder ' + reminder.id + ' updated ')
                     }
                 })
@@ -78,7 +78,7 @@ io.on('connection', (socket) => {
                 item.reminders.forEach(function (item, index, array) {
                     if (item.id == reminder.id) {
                         array.splice(index, 1)
-                        socket.to(roomName).emit('onDeleteReminder', reminder);
+                        io.in(roomName).emit('onDeleteReminder', reminder);
                         console.log('reminder ' + reminder.id + ' of the user: ' + username + ' deleted ')
                     }
                 })
@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
             username = newUsername
         }
         socket.emit('changeUsername', isChanged);
-        socket.broadcast.to(roomName).emit('onChangeUsername', newUsername);
+        socket.to(roomName).emit('onChangeUsername', userId, newUsername);
     });
 
 
