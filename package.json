@@ -9,7 +9,8 @@
     "fs": "0.0.1-security",
     "restify": "^8.5.1",
     "save": "^2.4.0",
-    "socket.io": "^4.1.3"
+    "socket.io": "^4.1.3",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "prettier": "2.3.2"
