@@ -24,14 +24,12 @@ io.on('connection', (socket) => {
 
     socket.on("connectUser", (...args) => {
 
-        let details = strToArray(args[0])
-        let usernameToConnect = details[0]
-        let passwordToConnect = details[1]
-
-        let idToConnect = authentication(usernameToConnect, passwordToConnect)
+        let details = JSON.parse(args[0])
+ 
+        let idToConnect = authentication(details.username, details.password)
         if (idToConnect != "") {
             userId = idToConnect
-            username = usernameToConnect
+            username = details.username
             roomName = userId
             socket.join(roomName)
             console.log('connected with: ' + username)
@@ -40,8 +38,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on("createReminder", (...args) => {
-        let reminderjson = strToArray(args[0])
-        let reminder = strToArray(reminderjson)
+        let reminder = JSON.parse(args[0])
         data.forEach(function (item, index, array) {
             if (item.userId == reminder.user) {
                 array[index].reminders.push(reminder)
@@ -53,8 +50,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on("editReminder", (...args) => {
-        let reminderjson = strToArray(args[0])
-        let reminder = strToArray(reminderjson)
+        let reminder = JSON.parse(args[0])
         data.forEach(function (item, index, array) {
             if (item.userId == reminder.user) {
                 item.reminders.forEach(function (item, index, array) {
@@ -71,8 +67,7 @@ io.on('connection', (socket) => {
 
 
     socket.on("deleteReminder", (...args) => {
-        let reminderjson = strToArray(args[0])
-        let reminder = strToArray(reminderjson)
+        let reminder = JSON.parse(args[0])
         data.forEach(function (item, index, array) {
             if (item.userId == reminder.user) {
                 item.reminders.forEach(function (item, index, array) {
@@ -87,19 +82,17 @@ io.on('connection', (socket) => {
 
     });
 
-
     socket.on("changeUsernameIfAble", (...args) => {
-        let details = strToArray(args[0])
-        let newUsername = details[0]
+        let newUsername = args[0]
         let isChanged = changeUsername(userId, newUsername)
+        socket.emit('changeUsername', isChanged);
         if (isChanged) {
+            const user = { userId: userId, username: newUsername}
+            socket.to(roomName).emit('onChangeUsername', user);
             console.log('username ' + username + ' updated to: ' + newUsername)
             username = newUsername
         }
-        socket.emit('changeUsername', isChanged);
-        socket.to(roomName).emit('onChangeUsername', userId, newUsername);
     });
-
 
     socket.on("logout", () => {
         socket.leave(roomName)
@@ -109,10 +102,8 @@ io.on('connection', (socket) => {
         roomName = undefined
     });
 
-
     socket.on("getAllReminders", (...args) => {
-        let details = strToArray(args[0])
-        let id = details[0]
+        let id = args[0]
         const usersIds = data.map(user => user.userId);
         if (usersIds.includes(id)) {
             data.forEach(function (item, index, array) {
@@ -147,7 +138,7 @@ function authentication(usernameToConnect, passwordToConnect) {
         })
     }
     else {
-        const user = { userId: generateID(), username: usernameToConnect, password: passwordToConnect, reminders: [] }
+        const user = { userId: uuidv4(), username: usernameToConnect, password: passwordToConnect, reminders: [] }
         idToConnect = user.userId
         data.push(user)
     }
@@ -166,12 +157,4 @@ function changeUsername(userId, newUsername) {
         })
     }
     return isChanged
-}
-
-function strToArray(strArray) {
-    return JSON.parse(strArray)
-}
-
-function generateID() {
-    return uuidv4();
 }
